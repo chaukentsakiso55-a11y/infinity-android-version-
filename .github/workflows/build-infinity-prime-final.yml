@@ -1,0 +1,66 @@
+name: Build Infinity Prime Final APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract exact Infinity Prime source
+        run: |
+          rm -rf source
+          mkdir source
+          unzip -q Infinity-Prime-Android-Source-v1.0.0.zip -d source
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses >/dev/null || true
+
+      - name: Install Android 35 platform
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug and release APKs
+        working-directory: source
+        run: |
+          gradle --no-daemon :app:assembleDebug :app:assembleRelease --stacktrace
+
+      - name: Verify APKs
+        working-directory: source
+        run: |
+          test -f app/build/outputs/apk/debug/app-debug.apk
+          test -f app/build/outputs/apk/release/app-release.apk
+          mkdir -p final-artifacts
+          cp app/build/outputs/apk/debug/app-debug.apk final-artifacts/Infinity-Prime-v1.0.0-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk final-artifacts/Infinity-Prime-v1.0.0.apk
+          sha256sum final-artifacts/*.apk | tee final-artifacts/SHA256SUMS.txt
+
+      - name: Upload final APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Infinity-Prime-Final-APK
+          path: source/final-artifacts/
+          if-no-files-found: error
+          retention-days: 30
