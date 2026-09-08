@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Infinity Prime</string>
+    <string name="accessibility_desc">Owner-enabled Android control for Infinity Prime. It only runs commands issued through Infinity Prime and can be disabled at any time in Android Accessibility settings.</string>
+</resources>
